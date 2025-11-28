@@ -60,7 +60,7 @@ export default function SettingsPage() {
     if (!deleteDialog.profileId) return;
     try {
       await APIClient.deleteAuthProfile(deleteDialog.profileId);
-      setAuthProfiles(authProfiles.filter((p) => p.id !== deleteDialog.profileId));
+      setAuthProfiles((current) => current.filter((p) => p.id !== deleteDialog.profileId));
     } catch (error) {
       console.error('Failed to delete profile:', error);
     }
@@ -96,7 +96,7 @@ export default function SettingsPage() {
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
                 value={settings.crawl4ai_base_url}
                 onChange={(e) =>
-                  setSettings({ ...settings, crawl4ai_base_url: e.target.value })
+                  setSettings((prev) => ({ ...prev!, crawl4ai_base_url: e.target.value }))
                 }
               />
               <p className="mt-1 text-xs text-gray-500">
@@ -113,7 +113,7 @@ export default function SettingsPage() {
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
                 value={settings.litellm_base_url}
                 onChange={(e) =>
-                  setSettings({ ...settings, litellm_base_url: e.target.value })
+                  setSettings((prev) => ({ ...prev!, litellm_base_url: e.target.value }))
                 }
               />
               <p className="mt-1 text-xs text-gray-500">Default: http://litellm:4000</p>
@@ -133,7 +133,7 @@ export default function SettingsPage() {
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
                 value={settings.output_base_path}
                 onChange={(e) =>
-                  setSettings({ ...settings, output_base_path: e.target.value })
+                  setSettings((prev) => ({ ...prev!, output_base_path: e.target.value }))
                 }
               />
             </div>
@@ -147,7 +147,7 @@ export default function SettingsPage() {
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
                 value={settings.file_storage_path}
                 onChange={(e) =>
-                  setSettings({ ...settings, file_storage_path: e.target.value })
+                  setSettings((prev) => ({ ...prev!, file_storage_path: e.target.value }))
                 }
               />
             </div>
@@ -166,10 +166,10 @@ export default function SettingsPage() {
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
                 value={settings.default_crawl_depth || 2}
                 onChange={(e) =>
-                  setSettings({
-                    ...settings,
+                  setSettings((prev) => ({
+                    ...prev!,
                     default_crawl_depth: parseInt(e.target.value),
-                  })
+                  }))
                 }
               />
             </div>
@@ -183,10 +183,10 @@ export default function SettingsPage() {
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
                 value={settings.default_concurrency || 5}
                 onChange={(e) =>
-                  setSettings({
-                    ...settings,
+                  setSettings((prev) => ({
+                    ...prev!,
                     default_concurrency: parseInt(e.target.value),
-                  })
+                  }))
                 }
               />
             </div>
@@ -197,10 +197,10 @@ export default function SettingsPage() {
                 className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                 checked={settings.default_pdf_downloads || false}
                 onChange={(e) =>
-                  setSettings({
-                    ...settings,
+                  setSettings((prev) => ({
+                    ...prev!,
                     default_pdf_downloads: e.target.checked,
-                  })
+                  }))
                 }
               />
               <label className="ml-2 block text-sm text-gray-900">
@@ -214,10 +214,10 @@ export default function SettingsPage() {
                 className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                 checked={settings.default_other_downloads || false}
                 onChange={(e) =>
-                  setSettings({
-                    ...settings,
+                  setSettings((prev) => ({
+                    ...prev!,
                     default_other_downloads: e.target.checked,
-                  })
+                  }))
                 }
               />
               <label className="ml-2 block text-sm text-gray-900">

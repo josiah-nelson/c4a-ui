@@ -41,7 +41,7 @@ export default function JobsPage() {
     if (!deleteDialog.jobId) return;
     try {
       await APIClient.deleteJob(deleteDialog.jobId);
-      setJobs(jobs.filter((j) => j.id !== deleteDialog.jobId));
+      setJobs((current) => current.filter((j) => j.id !== deleteDialog.jobId));
       if (selectedJob?.id === deleteDialog.jobId) setSelectedJob(null);
     } catch (error) {
       console.error('Failed to delete job:', error);

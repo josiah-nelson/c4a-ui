@@ -3,8 +3,50 @@ import { JobStorage, SettingsStorage } from '@/lib/storage';
 import { generateId } from '@/lib/utils';
 import type { Job } from '@/types/crawl4ai';
 
+// Track server start time for job recovery
+const SERVER_START_TIME = new Date().toISOString();
+let recoveryPerformed = false;
+
+// Recover jobs that were interrupted by server restart
+async function recoverStaleJobs() {
+  if (recoveryPerformed) return;
+  recoveryPerformed = true;
+
+  try {
+    const jobs = await JobStorage.getAll();
+    const staleJobs = jobs.filter((job) =>
+      job.status === 'running' || job.status === 'queued'
+    );
+
+    for (const job of staleJobs) {
+      // Mark running jobs as failed (they were interrupted)
+      if (job.status === 'running') {
+        job.status = 'failed';
+        job.error = 'Job interrupted by server restart';
+        job.updated_at = SERVER_START_TIME;
+        await JobStorage.save(job);
+      }
+      // Restart queued jobs that were never processed
+      else if (job.status === 'queued') {
+        processJobAsync(job.id).catch((error) => {
+          console.error(`Recovery: job ${job.id} failed:`, error);
+        });
+      }
+    }
+
+    if (staleJobs.length > 0) {
+      console.log(`Recovered ${staleJobs.length} stale job(s) on server restart`);
+    }
+  } catch (error) {
+    console.error('Job recovery failed:', error);
+  }
+}
+
 export async function GET() {
   try {
+    // Perform job recovery on first GET request after server start
+    await recoverStaleJobs();
+
     const jobs = await JobStorage.getAll();
     return NextResponse.json(jobs);
   } catch (error) {

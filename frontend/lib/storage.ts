@@ -4,6 +4,36 @@ import type { Job, AppSettings, AuthProfile, LLMProvider } from '@/types/crawl4a
 
 const DATA_DIR = process.env.FILE_STORAGE_PATH || path.join(process.cwd(), 'data');
 
+// Simple in-memory lock mechanism to prevent concurrent file writes
+class FileLock {
+  private locks = new Map<string, Promise<void>>();
+
+  async acquire<T>(key: string, fn: () => Promise<T>): Promise<T> {
+    // Wait for any existing lock on this file
+    while (this.locks.has(key)) {
+      await this.locks.get(key);
+    }
+
+    // Create new lock
+    let releaseLock: () => void;
+    const lockPromise = new Promise<void>((resolve) => {
+      releaseLock = resolve;
+    });
+    this.locks.set(key, lockPromise);
+
+    try {
+      // Execute the function
+      return await fn();
+    } finally {
+      // Release the lock
+      this.locks.delete(key);
+      releaseLock!();
+    }
+  }
+}
+
+const fileLock = new FileLock();
+
 // Ensure data directory exists
 async function ensureDataDir() {
   try {
@@ -22,8 +52,13 @@ export class JobStorage {
     try {
       const data = await fs.readFile(this.filePath, 'utf-8');
       return JSON.parse(data);
-    } catch {
-      return [];
+    } catch (error: unknown) {
+      // Only return empty array if file doesn't exist
+      if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') {
+        return [];
+      }
+      // Re-throw other errors (e.g., JSON parse errors, permission errors)
+      throw error;
     }
   }
 
@@ -33,21 +68,25 @@ export class JobStorage {
   }
 
   static async save(job: Job): Promise<Job> {
-    const jobs = await this.getAll();
-    const index = jobs.findIndex((j) => j.id === job.id);
-    if (index >= 0) {
-      jobs[index] = job;
-    } else {
-      jobs.push(job);
-    }
-    await fs.writeFile(this.filePath, JSON.stringify(jobs, null, 2));
-    return job;
+    return fileLock.acquire(this.filePath, async () => {
+      const jobs = await this.getAll();
+      const index = jobs.findIndex((j) => j.id === job.id);
+      if (index >= 0) {
+        jobs[index] = job;
+      } else {
+        jobs.push(job);
+      }
+      await fs.writeFile(this.filePath, JSON.stringify(jobs, null, 2));
+      return job;
+    });
   }
 
   static async delete(id: string): Promise<void> {
-    const jobs = await this.getAll();
-    const filtered = jobs.filter((j) => j.id !== id);
-    await fs.writeFile(this.filePath, JSON.stringify(filtered, null, 2));
+    return fileLock.acquire(this.filePath, async () => {
+      const jobs = await this.getAll();
+      const filtered = jobs.filter((j) => j.id !== id);
+      await fs.writeFile(this.filePath, JSON.stringify(filtered, null, 2));
+    });
   }
 }
 
@@ -60,25 +99,31 @@ export class SettingsStorage {
     try {
       const data = await fs.readFile(this.filePath, 'utf-8');
       return JSON.parse(data);
-    } catch {
-      // Default settings
-      return {
-        crawl4ai_base_url: process.env.CRAWL4AI_BASE_URL || 'http://crawl4ai:11235',
-        litellm_base_url: process.env.LITELLM_BASE_URL || 'http://litellm:4000',
-        output_base_path: process.env.OUTPUT_BASE_PATH || '/app/data/output',
-        file_storage_path: process.env.FILE_STORAGE_PATH || '/app/data',
-        default_crawl_depth: 2,
-        default_concurrency: 5,
-        default_pdf_downloads: false,
-        default_other_downloads: false,
-      };
+    } catch (error: unknown) {
+      // Only return defaults if file doesn't exist
+      if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') {
+        return {
+          crawl4ai_base_url: process.env.CRAWL4AI_BASE_URL || 'http://crawl4ai:11235',
+          litellm_base_url: process.env.LITELLM_BASE_URL || 'http://litellm:4000',
+          output_base_path: process.env.OUTPUT_BASE_PATH || '/app/data/output',
+          file_storage_path: process.env.FILE_STORAGE_PATH || '/app/data',
+          default_crawl_depth: 2,
+          default_concurrency: 5,
+          default_pdf_downloads: false,
+          default_other_downloads: false,
+        };
+      }
+      // Re-throw other errors (e.g., JSON parse errors, permission errors)
+      throw error;
     }
   }
 
   static async save(settings: AppSettings): Promise<AppSettings> {
-    await ensureDataDir();
-    await fs.writeFile(this.filePath, JSON.stringify(settings, null, 2));
-    return settings;
+    return fileLock.acquire(this.filePath, async () => {
+      await ensureDataDir();
+      await fs.writeFile(this.filePath, JSON.stringify(settings, null, 2));
+      return settings;
+    });
   }
 }
 
@@ -91,8 +136,13 @@ export class AuthProfileStorage {
     try {
       const data = await fs.readFile(this.filePath, 'utf-8');
       return JSON.parse(data);
-    } catch {
-      return [];
+    } catch (error: unknown) {
+      // Only return empty array if file doesn't exist
+      if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') {
+        return [];
+      }
+      // Re-throw other errors (e.g., JSON parse errors, permission errors)
+      throw error;
     }
   }
 
@@ -102,21 +152,25 @@ export class AuthProfileStorage {
   }
 
   static async save(profile: AuthProfile): Promise<AuthProfile> {
-    const profiles = await this.getAll();
-    const index = profiles.findIndex((p) => p.id === profile.id);
-    if (index >= 0) {
-      profiles[index] = profile;
-    } else {
-      profiles.push(profile);
-    }
-    await fs.writeFile(this.filePath, JSON.stringify(profiles, null, 2));
-    return profile;
+    return fileLock.acquire(this.filePath, async () => {
+      const profiles = await this.getAll();
+      const index = profiles.findIndex((p) => p.id === profile.id);
+      if (index >= 0) {
+        profiles[index] = profile;
+      } else {
+        profiles.push(profile);
+      }
+      await fs.writeFile(this.filePath, JSON.stringify(profiles, null, 2));
+      return profile;
+    });
   }
 
   static async delete(id: string): Promise<void> {
-    const profiles = await this.getAll();
-    const filtered = profiles.filter((p) => p.id !== id);
-    await fs.writeFile(this.filePath, JSON.stringify(filtered, null, 2));
+    return fileLock.acquire(this.filePath, async () => {
+      const profiles = await this.getAll();
+      const filtered = profiles.filter((p) => p.id !== id);
+      await fs.writeFile(this.filePath, JSON.stringify(filtered, null, 2));
+    });
   }
 }
 
@@ -129,9 +183,10 @@ export class LLMProviderStorage {
     try {
       const data = await fs.readFile(this.filePath, 'utf-8');
       return JSON.parse(data);
-    } catch {
-      // Default providers
-      return [
+    } catch (error: unknown) {
+      // Only return defaults if file doesn't exist
+      if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') {
+        return [
         {
           id: 'openai',
           name: 'OpenAI',
@@ -174,18 +229,23 @@ export class LLMProviderStorage {
           models: ['gemini-2.0-flash-exp', 'gemini-1.5-pro'],
         },
       ];
+      }
+      // Re-throw other errors (e.g., JSON parse errors, permission errors)
+      throw error;
     }
   }
 
   static async save(provider: LLMProvider): Promise<LLMProvider> {
-    const providers = await this.getAll();
-    const index = providers.findIndex((p) => p.id === provider.id);
-    if (index >= 0) {
-      providers[index] = provider;
-    } else {
-      providers.push(provider);
-    }
-    await fs.writeFile(this.filePath, JSON.stringify(providers, null, 2));
-    return provider;
+    return fileLock.acquire(this.filePath, async () => {
+      const providers = await this.getAll();
+      const index = providers.findIndex((p) => p.id === provider.id);
+      if (index >= 0) {
+        providers[index] = provider;
+      } else {
+        providers.push(provider);
+      }
+      await fs.writeFile(this.filePath, JSON.stringify(providers, null, 2));
+      return provider;
+    });
   }
 }

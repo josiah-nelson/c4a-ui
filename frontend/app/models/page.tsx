@@ -34,8 +34,8 @@ export default function ModelsPage() {
       await APIClient.updateLLMProvider(provider.id, {
         enabled: !provider.enabled,
       });
-      setProviders(
-        providers.map((p) =>
+      setProviders((prevProviders) =>
+        prevProviders.map((p) =>
           p.id === provider.id ? { ...p, enabled: !p.enabled } : p
         )
       );
@@ -53,10 +53,10 @@ export default function ModelsPage() {
       await APIClient.updateSettings({
         active_llm_provider: provider.provider,
       });
-      setSettings({
-        ...settings,
+      setSettings((prevSettings) => ({
+        ...prevSettings!,
         active_llm_provider: provider.provider,
-      });
+      }));
     } catch (error) {
       console.error('Failed to set active provider:', error);
     }

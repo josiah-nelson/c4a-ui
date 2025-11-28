@@ -22,7 +22,7 @@ export class APIClient {
     });
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || 'Crawl failed');
+      throw new Error(error.error || 'Crawl failed');
     }
     return response.json();
   }
@@ -35,7 +35,7 @@ export class APIClient {
     });
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || 'Job submission failed');
+      throw new Error(error.error || 'Job submission failed');
     }
     return response.json();
   }

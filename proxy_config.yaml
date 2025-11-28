@@ -64,10 +64,6 @@ model_list:
 general_settings:
   master_key: os.environ/LITELLM_MASTER_KEY
 
-litellm_settings:
-  success_callback: ["langfuse"]
-  failure_callback: ["langfuse"]
-
 # Rate limiting (optional)
 router_settings:
   routing_strategy: simple-shuffle
