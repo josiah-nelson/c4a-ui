@@ -5,8 +5,9 @@ export async function GET() {
   try {
     const settings = await SettingsStorage.get();
     return NextResponse.json(settings);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
@@ -17,7 +18,8 @@ export async function PUT(request: NextRequest) {
     const updated = { ...current, ...updates };
     await SettingsStorage.save(updated);
     return NextResponse.json(updated);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

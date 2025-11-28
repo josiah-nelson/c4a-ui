@@ -4,12 +4,17 @@ import { useEffect, useState } from 'react';
 import { PageLayout } from '@/components/layout/PageLayout';
 import { APIClient } from '@/lib/api-client';
 import { formatDate } from '@/lib/utils';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import type { Job } from '@/types/crawl4ai';
 
 export default function JobsPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [deleteDialog, setDeleteDialog] = useState<{ isOpen: boolean; jobId: string | null }>({
+    isOpen: false,
+    jobId: null,
+  });
 
   useEffect(() => {
     loadJobs();
@@ -28,12 +33,16 @@ export default function JobsPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Delete this job?')) return;
+  const confirmDelete = (id: string) => {
+    setDeleteDialog({ isOpen: true, jobId: id });
+  };
+
+  const handleDelete = async () => {
+    if (!deleteDialog.jobId) return;
     try {
-      await APIClient.deleteJob(id);
-      setJobs(jobs.filter((j) => j.id !== id));
-      if (selectedJob?.id === id) setSelectedJob(null);
+      await APIClient.deleteJob(deleteDialog.jobId);
+      setJobs(jobs.filter((j) => j.id !== deleteDialog.jobId));
+      if (selectedJob?.id === deleteDialog.jobId) setSelectedJob(null);
     } catch (error) {
       console.error('Failed to delete job:', error);
     }
@@ -97,7 +106,7 @@ export default function JobsPage() {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleDelete(job.id);
+                        confirmDelete(job.id);
                       }}
                       className="text-red-600 hover:text-red-800 text-sm"
                     >
@@ -158,6 +167,16 @@ export default function JobsPage() {
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        isOpen={deleteDialog.isOpen}
+        onClose={() => setDeleteDialog({ isOpen: false, jobId: null })}
+        onConfirm={handleDelete}
+        title="Delete Job"
+        message="Are you sure you want to delete this job? This action cannot be undone."
+        confirmText="Delete"
+        isDangerous
+      />
     </PageLayout>
   );
 }

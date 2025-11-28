@@ -154,7 +154,7 @@ export default function ModelsPage() {
             configure advanced settings.
           </p>
           <a
-            href="http://localhost:4000/ui"
+            href={settings ? `${settings.litellm_base_url}/ui` : 'http://localhost:4000/ui'}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-block px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"

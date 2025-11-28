@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { PageLayout } from '@/components/layout/PageLayout';
 import { APIClient } from '@/lib/api-client';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import type { AppSettings, AuthProfile } from '@/types/crawl4ai';
 
 export default function SettingsPage() {
@@ -11,6 +12,10 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
+  const [deleteDialog, setDeleteDialog] = useState<{ isOpen: boolean; profileId: string | null }>({
+    isOpen: false,
+    profileId: null,
+  });
 
   useEffect(() => {
     loadData();
@@ -39,18 +44,23 @@ export default function SettingsPage() {
       await APIClient.updateSettings(settings);
       setMessage('Settings saved successfully');
       setTimeout(() => setMessage(''), 3000);
-    } catch (error: any) {
-      setMessage(`Error: ${error.message}`);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      setMessage(`Error: ${errorMessage}`);
     } finally {
       setSaving(false);
     }
   };
 
-  const handleDeleteProfile = async (id: string) => {
-    if (!confirm('Delete this auth profile?')) return;
+  const confirmDeleteProfile = (id: string) => {
+    setDeleteDialog({ isOpen: true, profileId: id });
+  };
+
+  const handleDeleteProfile = async () => {
+    if (!deleteDialog.profileId) return;
     try {
-      await APIClient.deleteAuthProfile(id);
-      setAuthProfiles(authProfiles.filter((p) => p.id !== id));
+      await APIClient.deleteAuthProfile(deleteDialog.profileId);
+      setAuthProfiles(authProfiles.filter((p) => p.id !== deleteDialog.profileId));
     } catch (error) {
       console.error('Failed to delete profile:', error);
     }
@@ -252,7 +262,7 @@ export default function SettingsPage() {
                     <p className="text-sm text-gray-500">{profile.type}</p>
                   </div>
                   <button
-                    onClick={() => handleDeleteProfile(profile.id)}
+                    onClick={() => confirmDeleteProfile(profile.id)}
                     className="text-red-600 hover:text-red-800 text-sm"
                   >
                     Delete
@@ -263,6 +273,16 @@ export default function SettingsPage() {
           )}
         </div>
       </div>
+
+      <ConfirmDialog
+        isOpen={deleteDialog.isOpen}
+        onClose={() => setDeleteDialog({ isOpen: false, profileId: null })}
+        onConfirm={handleDeleteProfile}
+        title="Delete Auth Profile"
+        message="Are you sure you want to delete this authentication profile? This action cannot be undone."
+        confirmText="Delete"
+        isDangerous
+      />
     </PageLayout>
   );
 }

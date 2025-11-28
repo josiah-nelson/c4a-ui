@@ -46,9 +46,9 @@ services:
     ports:
       - "4000:4000"
     environment:
-      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:-sk-1234}
-      - UI_USERNAME=${UI_USERNAME:-admin}
-      - UI_PASSWORD=${UI_PASSWORD:-password}
+      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:?LITELLM_MASTER_KEY is required - set in .env file}
+      - UI_USERNAME=${UI_USERNAME:?UI_USERNAME is required - set in .env file}
+      - UI_PASSWORD=${UI_PASSWORD:?UI_PASSWORD is required - set in .env file}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - ZAI_API_KEY=${ZAI_API_KEY:-}

@@ -26,5 +26,10 @@ export function formatDate(date: string | Date) {
 }
 
 export function generateId() {
+  // Use crypto.randomUUID() for cryptographically secure unique IDs
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  // Fallback for environments without crypto.randomUUID
   return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 }
