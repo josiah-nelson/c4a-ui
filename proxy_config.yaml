@@ -1,0 +1,71 @@
+# LiteLLM Proxy Configuration
+# Supports multiple providers with environment variable-based credentials
+
+model_list:
+  # OpenAI Models
+  - model_name: gpt-4o
+    litellm_params:
+      model: openai/gpt-4o
+      api_key: os.environ/OPENAI_API_KEY
+
+  - model_name: gpt-4o-mini
+    litellm_params:
+      model: openai/gpt-4o-mini
+      api_key: os.environ/OPENAI_API_KEY
+
+  - model_name: gpt-4-turbo
+    litellm_params:
+      model: openai/gpt-4-turbo
+      api_key: os.environ/OPENAI_API_KEY
+
+  # Anthropic Claude Models
+  - model_name: claude-3-5-sonnet
+    litellm_params:
+      model: anthropic/claude-3-5-sonnet-20241022
+      api_key: os.environ/ANTHROPIC_API_KEY
+
+  - model_name: claude-3-opus
+    litellm_params:
+      model: anthropic/claude-3-opus-20240229
+      api_key: os.environ/ANTHROPIC_API_KEY
+
+  # z.AI GLM Models (via OpenAI-compatible endpoint)
+  - model_name: glm-4-air
+    litellm_params:
+      model: openai/glm-4-air
+      api_key: os.environ/ZAI_API_KEY
+      api_base: os.environ/ZAI_BASE_URL
+
+  - model_name: glm-4-flash
+    litellm_params:
+      model: openai/glm-4-flash
+      api_key: os.environ/ZAI_API_KEY
+      api_base: os.environ/ZAI_BASE_URL
+
+  # LM Studio (local models)
+  - model_name: lmstudio-local
+    litellm_params:
+      model: openai/local-model
+      api_key: not-needed
+      api_base: os.environ/LMSTUDIO_BASE_URL
+
+  # Google Gemini Models
+  - model_name: gemini-2.0-flash-exp
+    litellm_params:
+      model: gemini/gemini-2.0-flash-exp
+      api_key: os.environ/GEMINI_API_KEY
+
+  - model_name: gemini-1.5-pro
+    litellm_params:
+      model: gemini/gemini-1.5-pro
+      api_key: os.environ/GEMINI_API_KEY
+
+# General settings
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
+
+# Rate limiting (optional)
+router_settings:
+  routing_strategy: simple-shuffle
+  num_retries: 3
+  timeout: 600

@@ -1,0 +1,78 @@
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - CRAWL4AI_BASE_URL=http://crawl4ai:11235
+      - LITELLM_BASE_URL=http://litellm:4000
+      - FILE_STORAGE_PATH=/app/data
+      - OUTPUT_BASE_PATH=/app/data/output
+    volumes:
+      - frontend-data:/app/data
+    depends_on:
+      - crawl4ai
+      - litellm
+    restart: unless-stopped
+    networks:
+      - c4a-network
+
+  crawl4ai:
+    image: unclecode/crawl4ai:0.7.7
+    ports:
+      - "11235:11235"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+    shm_size: 2g
+    volumes:
+      - crawl4ai-data:/app/data
+    restart: unless-stopped
+    networks:
+      - c4a-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11235/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  litellm:
+    image: ghcr.io/berriai/litellm:v1.36.10
+    ports:
+      - "4000:4000"
+    environment:
+      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:?LITELLM_MASTER_KEY is required - set in .env file}
+      - UI_USERNAME=${UI_USERNAME:?UI_USERNAME is required - set in .env file}
+      - UI_PASSWORD=${UI_PASSWORD:?UI_PASSWORD is required - set in .env file}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - ZAI_API_KEY=${ZAI_API_KEY:-}
+      - ZAI_BASE_URL=${ZAI_BASE_URL:-https://open.bigmodel.cn/api/paas/v4}
+      - LMSTUDIO_BASE_URL=${LMSTUDIO_BASE_URL:-http://host.docker.internal:1234/v1}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - DATABASE_URL=${DATABASE_URL:-}
+    volumes:
+      - ./proxy_config.yaml:/app/config.yaml
+    command: --config /app/config.yaml --port 4000 --num_workers 4
+    restart: unless-stopped
+    networks:
+      - c4a-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+volumes:
+  frontend-data:
+  crawl4ai-data:
+
+networks:
+  c4a-network:
+    driver: bridge
